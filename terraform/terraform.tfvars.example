@@ -1,0 +1,19 @@
+aws_region    = "us-east-1"
+project_name  = "formsync"
+environment   = "dev"
+owner         = "platform-team"
+
+instance_type    = "t2.large"
+root_volume_size = 30
+root_volume_type = "gp3"
+
+vpc_cidr           = "10.0.0.0/16"
+public_subnet_cidr = "10.0.1.0/24"
+
+# IMPORTANT: lock these down to your office/VPN CIDR in production
+ssh_allowed_cidrs = ["0.0.0.0/0"]
+app_allowed_cidrs = ["0.0.0.0/0"]
+
+key_name               = "formsync-docker-key"
+private_key_path       = "./formsync-docker-key.pem"
+ansible_inventory_path = "../ansible/inventory/hosts.ini"
