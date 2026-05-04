@@ -1,0 +1,49 @@
+resource "aws_security_group" "ec2" {
+  name        = "${local.name_prefix}-ec2-sg"
+  description = "Security group for ${local.name_prefix} Docker host"
+  vpc_id      = aws_vpc.this.id
+
+  tags = {
+    Name = "${local.name_prefix}-ec2-sg"
+  }
+}
+
+resource "aws_vpc_security_group_ingress_rule" "ssh" {
+  for_each = toset(var.ssh_allowed_cidrs)
+
+  security_group_id = aws_security_group.ec2.id
+  description       = "SSH access"
+  cidr_ipv4         = each.value
+  from_port         = 22
+  to_port           = 22
+  ip_protocol       = "tcp"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "http" {
+  for_each = toset(var.app_allowed_cidrs)
+
+  security_group_id = aws_security_group.ec2.id
+  description       = "HTTP access"
+  cidr_ipv4         = each.value
+  from_port         = 80
+  to_port           = 80
+  ip_protocol       = "tcp"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "https" {
+  for_each = toset(var.app_allowed_cidrs)
+
+  security_group_id = aws_security_group.ec2.id
+  description       = "HTTPS access"
+  cidr_ipv4         = each.value
+  from_port         = 443
+  to_port           = 443
+  ip_protocol       = "tcp"
+}
+
+resource "aws_vpc_security_group_egress_rule" "all" {
+  security_group_id = aws_security_group.ec2.id
+  description       = "Allow all outbound traffic"
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = "-1"
+}
