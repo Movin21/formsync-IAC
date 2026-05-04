@@ -1,0 +1,100 @@
+---
+- name: Install prerequisite packages
+  ansible.builtin.apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg
+      - lsb-release
+      - software-properties-common
+      - python3-pip
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Ensure apt keyrings directory exists
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+
+- name: Download Docker apt GPG key
+  ansible.builtin.get_url:
+    url: "{{ docker_apt_gpg_key_url }}"
+    dest: "{{ docker_apt_gpg_key_path }}"
+    mode: "0644"
+    force: false
+
+- name: Add Docker apt repository
+  ansible.builtin.apt_repository:
+    repo: >-
+      deb [arch={{ docker_apt_arch }}
+      signed-by={{ docker_apt_gpg_key_path }}]
+      {{ docker_apt_repository_url }}
+      {{ ansible_distribution_release }}
+      {{ docker_apt_release_channel }}
+    filename: docker
+    state: present
+    update_cache: true
+
+- name: Install Docker Engine and Compose plugin
+  ansible.builtin.apt:
+    name: "{{ docker_packages }}"
+    state: present
+    update_cache: true
+
+- name: Ensure /etc/docker exists
+  ansible.builtin.file:
+    path: /etc/docker
+    state: directory
+    mode: "0755"
+
+- name: Configure Docker daemon
+  ansible.builtin.copy:
+    content: "{{ docker_daemon_options | to_nice_json }}"
+    dest: /etc/docker/daemon.json
+    mode: "0644"
+    owner: root
+    group: root
+  when: docker_daemon_options | length > 0
+  notify: Restart docker
+
+- name: Ensure Docker service is enabled and running
+  ansible.builtin.systemd:
+    name: docker
+    state: "{{ docker_service_state }}"
+    enabled: "{{ docker_service_enabled }}"
+    daemon_reload: true
+
+- name: Add users to the docker group
+  ansible.builtin.user:
+    name: "{{ item }}"
+    groups: docker
+    append: true
+  loop: "{{ docker_users }}"
+  when: docker_users | length > 0
+
+- name: Create docker-compose project directory
+  ansible.builtin.file:
+    path: "{{ docker_compose_dir }}"
+    state: directory
+    owner: "{{ docker_users[0] | default('root') }}"
+    group: "{{ docker_users[0] | default('root') }}"
+    mode: "0755"
+
+- name: Deploy sample docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ docker_compose_dir }}/docker-compose.yml"
+    owner: "{{ docker_users[0] | default('root') }}"
+    group: "{{ docker_users[0] | default('root') }}"
+    mode: "0644"
+  when: docker_compose_create_sample | bool
+
+- name: Start docker compose stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ docker_compose_dir }}"
+    project_name: "{{ docker_compose_project_name }}"
+    state: present
+  when: docker_compose_create_sample | bool
