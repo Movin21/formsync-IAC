@@ -1,0 +1,15 @@
+---
+docker_users:
+  - ubuntu
+
+docker_compose_project_name: formsync
+docker_compose_dir: /opt/formsync
+docker_data_dir: /var/lib/docker
+
+docker_daemon_options:
+  log-driver: json-file
+  log-opts:
+    max-size: "10m"
+    max-file: "3"
+  live-restore: true
+  userland-proxy: false
