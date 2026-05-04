@@ -1,0 +1,18 @@
+---
+galaxy_info:
+  role_name: docker
+  author: platform-team
+  description: Install and configure Docker Engine and Docker Compose plugin
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy
+        - focal
+  galaxy_tags:
+    - docker
+    - container
+    - compose
+
+dependencies: []
